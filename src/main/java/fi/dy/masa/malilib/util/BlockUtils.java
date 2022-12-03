@@ -10,6 +10,7 @@ import net.minecraft.state.property.DirectionProperty;
 import net.minecraft.state.property.IntProperty;
 import net.minecraft.state.property.Property;
 import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.MathHelper;
 import fi.dy.masa.malilib.gui.GuiBase;
 
 public class BlockUtils
@@ -82,6 +83,7 @@ public class BlockUtils
                 else if (prop instanceof IntProperty)
                 {
                     String colour = GuiBase.TXT_AQUA;
+                    String value = val.toString();
                     switch (prop.getName().toLowerCase()) {
                         case "honey_level": // beehive/nest: {0..5}
                         case "stage": // saplings: {0, 1}
@@ -100,7 +102,9 @@ public class BlockUtils
                                sugar cane: {0..15}
                                berry bush: {0..3}
                                wheat: {0..7} */
-                            colour = isLastElement ? GuiBase.TXT_GOLD : GuiBase.TXT_YELLOW; break;
+                            colour = isLastElement ? GuiBase.TXT_GOLD : GuiBase.TXT_YELLOW;
+                            if (isLastElement) value += "!";
+                            break;
                         case "moisture": // farmland: {0..7}
                             colour = isLastElement ? GuiBase.TXT_BLUE : GuiBase.TXT_AQUA; break;
                         case "delay": // repeater: {1..4}
@@ -114,40 +118,35 @@ public class BlockUtils
                         case "rotation": // mob heads (floor), signs (floor): {0..15}
                             colour = GuiBase.TXT_GOLD; break;
                         case "note": // note blocks: {0..24}
-                            colour = GuiBase.TXT_LIGHT_PURPLE;
-                            /* bukkit lied to me
-                            switch (val.toString()) {
-                                // nabbed from https://minecraft.fandom.com/wiki/Talk:Note_Block#Hex_Colors_for_the_Notes_were_Missing.2C_so_I_offer_you_the_colors
-                                // probably not the best way to do this
-                                case "0": colour = "§#67D605"; break;
-                                case "1": colour = "§#8BD602"; break;
-                                case "2": colour = "§#D6D600"; break;
-                                case "3": colour = "§#D68B1B"; break;
-                                case "4": colour = "§#D64F26"; break;
-                                case "5": colour = "§#D72A29"; break;
-                                case "6": colour = "§#CE2827"; break;
-                                case "7": colour = "§#D72A29"; break;
-                                case "8": colour = "§#D72A4F"; break;
-                                case "9": colour = "§#D72A86"; break;
-                                case "10": colour = "§#D72AD6"; break;
-                                case "11": colour = "§#8C16D7"; break;
-                                case "12": colour = "§#5006D6"; break;
-                                case "13": colour = "§#2C00FE"; break;
-                                case "14": colour = "§#1E01F6"; break;
-                                case "15": colour = "§#252DFE"; break;
-                                case "16": colour = "§#3660FF"; break;
-                                case "17": colour = "§#4C95EB"; break;
-                                case "18": colour = "§#6BD7D6"; break;
-                                case "19": colour = "§#68D68C"; break;
-                                case "20": colour = "§#67D651"; break;
-                                case "21": colour = "§#67D626"; break;
-                                case "22": colour = "§#62CD0D"; break;
-                                case "23": colour = "§#72EB10"; break;
-                                case "24": colour = "§#67D605"; break;
-                            }*/
+                            {
+                                // from net.minecraft.client.particle.NoteParticle
+                                // see also net.minecraft.block.NoteBlock
+                                double d = (double)(Integer)val / 24.0;
+                                float red = Math.max(0.0f, MathHelper.sin(((float)d + 0.0f) * ((float)Math.PI * 2)) * 0.65f + 0.35f);
+                                float green = Math.max(0.0f, MathHelper.sin(((float)d + 0.33333334f) * ((float)Math.PI * 2)) * 0.65f + 0.35f);
+                                float blue = Math.max(0.0f, MathHelper.sin(((float)d + 0.6666667f) * ((float)Math.PI * 2)) * 0.65f + 0.35f);
+
+                                // 128 + float*127 to keep colour bright and visible over background
+                                colour = String.format("§x#%02x%02x%02x", 128 + (int)(red*127), 128 + (int)(green*127), 128 + (int)(blue*127));
+                            }
+                            switch ((Integer)val % 12)
+                            {
+                                case 0: value += " (F♯)"; break;
+                                case 1: value += " (G)"; break;
+                                case 2: value += " (G♯)"; break;
+                                case 3: value += " (A)"; break;
+                                case 4: value += " (B♭)"; break;
+                                case 5: value += " (B)"; break;
+                                case 6: value += " (C)"; break;
+                                case 7: value += " (C♯)"; break;
+                                case 8: value += " (D)"; break;
+                                case 9: value += " (E♭)"; break;
+                                case 10: value += " (E)"; break;
+                                case 11: value += " (F)"; break;
+                            }
                             break;
                     }
-                    lines.add(prop.getName() + separator + colour + val.toString());
+                    lines.add(prop.getName() + separator + colour + value);
                 }
                 else
                 {
