@@ -3,6 +3,9 @@ package fi.dy.masa.malilib.render;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import javax.annotation.Nullable;
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -37,6 +40,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.map.MapState;
 import net.minecraft.screen.PlayerScreenHandler;
 import net.minecraft.util.DyeColor;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.collection.DefaultedList;
 import net.minecraft.util.math.BlockPos;
@@ -408,7 +412,7 @@ public class RenderUtils
 
         for (String line : lines)
         {
-            final int width = fontRenderer.getWidth(line);
+            final int width = fontRenderer.getWidth(line.replaceAll("§x#[0-9A-Fa-f]{6}", ""));
 
             switch (alignment)
             {
@@ -431,13 +435,72 @@ public class RenderUtils
                 drawRect(x - bgMargin, y - bgMargin, width + bgMargin, bgMargin + fontRenderer.fontHeight, bgColor);
             }
 
-            if (useShadow)
+            if (line.matches(".*§x#[0-9A-Fa-f]{6}.*"))
             {
-                fontRenderer.drawWithShadow(matrixStack, line, x, y, textColor);
+                int cx = x;
+                int searchIndex = 0;
+                final Pattern pattern = Pattern.compile("§(?:([0-9a-f])|([klmno])|(r)|x#([0-9A-Fa-f]{6}))");
+                final Matcher matcher = pattern.matcher(line);
+                int lastColour = textColor;
+                String lastFormat = "";
+                while (matcher.find(searchIndex))
+                {
+                    int start = searchIndex, end = matcher.start();
+                    if (start != end)
+                    {
+                        if (useShadow)
+                        {
+                            cx = fontRenderer.drawWithShadow(matrixStack, lastFormat + line.substring(start, end), cx, y, lastColour);
+                        }
+                        else
+                        {
+                            cx = fontRenderer.draw(matrixStack, lastFormat + line.substring(start, end), cx, y, lastColour);
+                        }
+                    }
+                    if (matcher.group(1) != null)
+                    {
+                        lastColour = Formatting.byCode(matcher.group(1).charAt(0)).getColorValue();
+                    }
+                    else if (matcher.group(2) != null)
+                    {
+                        if (!lastFormat.contains(matcher.group(2)))
+                        {
+                            lastFormat += Formatting.byCode(matcher.group(2).charAt(0)).toString();
+                        }
+                    }
+                    else if (matcher.group(3) != null)
+                    {
+                        lastColour = textColor;
+                        lastFormat = "";
+                    }
+                    else // matcher.group(4) != null
+                    {
+                        lastColour = Integer.parseInt(matcher.group(4), 16);
+                    }
+                    searchIndex = matcher.end();
+                }
+                if (searchIndex != line.length())
+                {
+                    if (useShadow)
+                    {
+                        cx = fontRenderer.drawWithShadow(matrixStack, lastFormat + line.substring(searchIndex), cx, y, lastColour);
+                    }
+                    else
+                    {
+                        cx = fontRenderer.draw(matrixStack, lastFormat + line.substring(searchIndex), cx, y, lastColour);
+                    }
+                }
             }
             else
             {
-                fontRenderer.draw(matrixStack, line, x, y, textColor);
+                if (useShadow)
+                {
+                    fontRenderer.drawWithShadow(matrixStack, line, x, y, textColor);
+                }
+                else
+                {
+                    fontRenderer.draw(matrixStack, line, x, y, textColor);
+                }
             }
         }
 
